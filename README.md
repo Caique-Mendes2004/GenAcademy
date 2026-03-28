@@ -100,16 +100,16 @@ Este projeto envolve conceitos e práticas como:
 
 Abaixo, os integrantes listados em **ordem alfabética**:
 
-- **Armando Bertolli** — armando.bertolli@gmail.com — **211192**
-- **Caique Pinto** — fmendes767@gmail.com — **223007**
-- **Diego Juan Isaquiel Mizael** — diegoisaquiel1@gmail.com — **222545**
-- **Gabriel Henrique Domingues de Oliveira** — gabrieloliveira2758@gmail.com — **222398**
-- **Giovana Pontes Merguizo** — giovana.merguizo@outlook.com — **223397**
-- **Guilherme Bordignon Janczak** — guijanck@gmail.com — **222688**
-- **Gustavo Figueiredo Passos** — gustavofp111@gmail.com — **222560**
-- **João Luiz Orlandini Alves** — joao.luiz.orlandini@gmail.com — **223497**
-- **Leonardo Barbosa Gonçalves** — leonardo.goncalves16@outlook.com — **211923**
-- **Lucas Laureano Jorge da Silva** — lucaslaureanojorgesilva@hotmail.com — **222679**
+- **Armando Bertolli** — armando.bertolli@gmail.com — RA **211192** - QA
+- **Caique Pinto** — fmendes767@gmail.com — RA **223007** - Dev
+- **Diego Juan Isaquiel Mizael** — diegoisaquiel1@gmail.com — RA **222545** - Scrum Master
+- **Gabriel Henrique Domingues de Oliveira** — gabrieloliveira2758@gmail.com - RA **222398** - Dev
+- **Giovana Pontes Merguizo** — giovana.merguizo@outlook.com — RA **223397** - Dev
+- **Guilherme Bordignon Janczak** — guijanck@gmail.com — RA **222688** - QA
+- **Gustavo Figueiredo Passos** — gustavofp111@gmail.com — RA **222560** - Dev
+- **João Luiz Orlandini Alves** — joao.luiz.orlandini@gmail.com — RA **223497** - PO
+- **Leonardo Barbosa Gonçalves** — leonardo.goncalves16@outlook.com — RA **211923** - Dev
+- **Lucas Laureano Jorge da Silva** — lucaslaureanojorgesilva@hotmail.com —  RA **222679** - Dev
 
 ---
 
