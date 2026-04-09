@@ -2,10 +2,11 @@ import boto3
 from datetime import datetime
 import os
 
+
 # Configuração de conexão com o MinIO
 s3_client = boto3.client(
     's3',
-    endpoint_url='http://localhost:9000',
+    endpoint_url='http://minio:9000',
     aws_access_key_id='minio',
     aws_secret_access_key='minio123'
 )
@@ -22,7 +23,7 @@ def ingest_to_bronze():
     destination_path = f"bronze/cloudtrail/dt={data_atual}/raw_logs.csv"
     
     # Dataset
-    local_file_path = 'dec12_18features.csv' 
+    local_file_path = 'nineteenFeaturesDf.csv' 
 
     if not os.path.exists(local_file_path):
         print(f"Erro: Arquivo '{local_file_path}' não encontrado na pasta atual.")

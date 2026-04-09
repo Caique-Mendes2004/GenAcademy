@@ -4,10 +4,15 @@ import io
 import hashlib
 from datetime import datetime
 
+
+
+
+
+
 # Configuração de conexão com o MinIO
 s3_client = boto3.client(
     's3',
-    endpoint_url='http://localhost:9000',
+    endpoint_url='http://minio:9000',
     aws_access_key_id='minio',
     aws_secret_access_key='minio123'
 )
@@ -62,35 +67,51 @@ def process_bronze_to_silver():
 
     # Tipagem e mapeamento
     if 'eventtime' in df_limpo.columns:
-        df_limpo['eventtime'] = pd.to_datetime(df_limpo['eventtime'], errors='coerce')
-        df_limpo = df_limpo.dropna(subset=['eventtime']) # Remove falhas de conversão
+        # 1. Converte a string para Data/Hora de verdade (com UTC)
+        df_limpo['eventtime'] = pd.to_datetime(df_limpo['eventtime'], utc=True, errors='coerce')
+        df_limpo = df_limpo.dropna(subset=['eventtime'])
+        
+        # 2. Cria a coluna 'timestamp' primeiro!
+        df_limpo['timestamp'] = df_limpo['eventtime']
+        
+        # 3. Agora sim, extrai as features usando o 'timestamp' recém-criado
+        df_limpo['hour'] = df_limpo['timestamp'].dt.hour
+        df_limpo['minute'] = df_limpo['timestamp'].dt.minute
+        df_limpo['hora_completa'] = df_limpo['timestamp'].dt.strftime('%H:%M')
+        df_limpo['day_of_week'] = df_limpo['timestamp'].dt.dayofweek
+        df_limpo['is_weekend'] = df_limpo['day_of_week'].apply(lambda x: 1 if x >= 5 else 0)
 
-    # Aplicar LGPD: Hash no userId e mascarar IPs
-    col_user = 'useridentity_accountid' if 'useridentity_accountid' in df_limpo.columns else 'useridentity'
-    if col_user in df_limpo.columns:
-        df_limpo['user_hash'] = df_limpo[col_user].apply(hash_user_id)
+    # Aplicar LGPD: Hash no userId
+    if 'useridentityaccountid' in df_limpo.columns:
+        df_limpo['user_hash'] = df_limpo['useridentityaccountid'].apply(hash_user_id)
+    elif 'useridentityusername' in df_limpo.columns:
+         df_limpo['user_hash'] = df_limpo['useridentityusername'].apply(hash_user_id)
     else:
         df_limpo['user_hash'] = 'unknown'
 
     # Mascaramento de IP
     if 'sourceipaddress' in df_limpo.columns:
         df_limpo['masked_ip'] = df_limpo['sourceipaddress'].apply(mask_ip)
-
-    # Enriquecimento - Features Temporais para ML
-    df_limpo['timestamp'] = df_limpo['eventtime']
-    df_limpo['hour'] = df_limpo['timestamp'].dt.hour
-    df_limpo['day_of_week'] = df_limpo['timestamp'].dt.dayofweek
-    df_limpo['is_weekend'] = df_limpo['day_of_week'].apply(lambda x: 1 if x >= 5 else 0)
-    # Garantindo a criação das colunas padronizadas caso os nomes originais variem
+    
+    # Padronização de nomes exigida pelo requisito
     df_limpo['event'] = df_limpo['eventname'] if 'eventname' in df_limpo.columns else 'unknown'
     df_limpo['resource'] = df_limpo['resources'] if 'resources' in df_limpo.columns else 'unknown'
 
-    colunas_finais = ['timestamp', 'user_hash', 'event', 'resource', 'hour', 'day_of_week', 'is_weekend']
+    # DEFINIÇÃO INTELIGENTE DE COLUNAS FINAIS:
+    # 1. Mantém as obrigatórias do requisito
+    colunas_obrigatorias = ['timestamp', 'user_hash', 'event', 'resource', 'hour', 'day_of_week', 'is_weekend']
+    
+    # 2. Adiciona o IP mascarado (atendendo ao critério de LGPD)
+    if 'masked_ip' in df_limpo.columns:
+        colunas_obrigatorias.append('masked_ip')
+
+    # 3. Preserva colunas extras essenciais do CloudTrail para o LLM / FinOps
+    colunas_extras_finops = ['errorcode', 'errormessage', 'useragent', 'requestparameters', 'responseelements', 'eventsource']
+    
+    # Filtra apenas as colunas que realmente existem no df_limpo
+    colunas_finais = colunas_obrigatorias + [col for col in colunas_extras_finops if col in df_limpo.columns]
+
     df_limpo = df_limpo[colunas_finais]
-
-
-    linhas_finais = len(df_limpo)
-    print(f"Limpeza concluída. De {linhas_originais} para {linhas_finais} linhas.")
 
     # Salva em formato Parquet na camada Silver
     print(f"Convertendo para Parquet e enviando para '{bucket_name}/{destination_key}'...")
