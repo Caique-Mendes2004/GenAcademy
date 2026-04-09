@@ -3,8 +3,17 @@ FROM python:3.9-slim
 # Define a pasta de trabalho
 WORKDIR /app
 
-# Instala todas as dependências do MLflow e da nossa Sprint 3 (Silver/Gold)
-RUN pip install mlflow boto3 psycopg2-binary pandas pyarrow fastparquet pymysql
+RUN pip install --no-cache-dir \
+    mlflow \
+    boto3 \
+    psycopg2-binary \
+    pandas \
+    pyarrow \
+    fastparquet \
+    pymysql \
+    scikit-learn \
+    joblib \
+    numpy
 
 # Expõe a porta do painel
 EXPOSE 3000
