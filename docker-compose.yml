@@ -37,13 +37,18 @@ services:
       - mlflow-network
     entrypoint: >
       /bin/sh -c "
-      sleep 5;
-      /usr/bin/mc alias set myminio http://minio:9000 minio minio123;
+      until /usr/bin/mc alias set myminio http://minio:9000 minio minio123; do
+        echo 'Aguardando MinIO subir...';
+        sleep 2;
+      done;
       /usr/bin/mc mb myminio/data-lake --ignore-existing;
-      /usr/bin/mc mb myminio/silver --ignore-existing;
       /usr/bin/mc mb myminio/mlflow --ignore-existing;
       /usr/bin/mc version enable myminio/data-lake;
-      /usr/bin/mc version enable myminio/silver;
+      /usr/bin/mc version enable myminio/mlflow;
+      echo 'bucket data-lake pronto' | /usr/bin/mc pipe myminio/data-lake/bronze/placeholder.txt;
+      echo 'bucket data-lake pronto' | /usr/bin/mc pipe myminio/data-lake/silver/placeholder.txt;
+      echo 'bucket data-lake pronto' | /usr/bin/mc pipe myminio/data-lake/gold/placeholder.txt;
+      /usr/bin/mc ls myminio/data-lake;
       exit 0;
       "
 
@@ -65,7 +70,7 @@ services:
       - AWS_ACCESS_KEY_ID=minio
       - AWS_SECRET_ACCESS_KEY=minio123
       - MLFLOW_TRACKING_URI=postgresql://mlflow:mlflow@postgres:5432/mlflow
-      - BUCKET_NAME=mlflow
+      - BUCKET_NAME=data-lake
     networks:
       - mlflow-network
 
