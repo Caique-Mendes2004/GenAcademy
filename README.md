@@ -56,6 +56,22 @@ Camada analítica com geração de indicadores estratégicos, como:
 
 ---
 
+## Execução do Projeto
+### Como executar
+```bash
+docker compose up -d
+
+# Camada Bronze
+docker exec -it mlflow-server python ingestion_bronze.py
+
+# Camada Prata
+docker exec -it mlflow-server python process_silver.py
+
+# Camada Gold
+docker exec -it mlflow-server python process_gold.py
+
+```
+
 ## Papel do LLM no Projeto
 
 O LLM será utilizado como um **agente interpretador e recomendador**, capaz de transformar métricas técnicas em orientações acionáveis para o negócio.

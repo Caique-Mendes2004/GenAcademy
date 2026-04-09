@@ -13,7 +13,8 @@ RUN pip install --no-cache-dir \
     pymysql \
     scikit-learn \
     joblib \
-    numpy
+    numpy \
+    openpyxl
 
 # Expõe a porta do painel
 EXPOSE 3000

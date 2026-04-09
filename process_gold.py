@@ -3,8 +3,7 @@
 # =============================================================
 
 import io
-import os
-from typing import Optional, List, Set
+from typing import Optional, List
 from datetime import datetime
 
 import boto3
@@ -18,22 +17,8 @@ AWS_ACCESS_KEY_ID = "minio"
 AWS_SECRET_ACCESS_KEY = "minio123"
 BUCKET_NAME = "data-lake" 
 
-LOCAL_BASE_DIR = "/app/data-lake/gold"
 UNIT_COST = 0.000004
-
 DOMAINS = ["cost", "performance", "security"]
-
-LOCAL_CANDIDATES = [
-    "/app/cleaned_logs.parquet",
-    "/app/data-lake/silver/cleaned_logs.parquet",
-    "/app/data-lake/silver/cloudtrail/cleaned_logs.parquet",
-    "./cleaned_logs.parquet"
-]
-
-MINIO_CANDIDATES = [
-    "silver/cleaned_logs.parquet",
-    "silver/cloudtrail/cleaned_logs.parquet",
-]
 
 # ── Cliente MinIO ────────────────────────────────────────────
 def get_s3_client():
@@ -55,14 +40,14 @@ def ensure_bucket_exists(bucket_name: str) -> None:
         print(f"Bucket '{bucket_name}' não encontrado. Criando...")
         s3_client.create_bucket(Bucket=bucket_name)
 
-def ensure_local_dirs() -> None:
-    os.makedirs(LOCAL_BASE_DIR, exist_ok=True)
-    for domain in DOMAINS:
-        os.makedirs(os.path.join(LOCAL_BASE_DIR, domain), exist_ok=True)
-
-# ── IO ───────────────────────────────────────────────────────
-def upload_file_to_minio(local_path: str, object_key: str) -> None:
-    s3_client.upload_file(local_path, BUCKET_NAME, object_key)
+# ── IO (Em Memória) ──────────────────────────────────────────
+def upload_buffer_to_minio(buffer: io.BytesIO, object_key: str) -> None:
+    """Envia um buffer de memória direto para o MinIO"""
+    s3_client.put_object(
+        Bucket=BUCKET_NAME, 
+        Key=object_key, 
+        Body=buffer.getvalue()
+    )
 
 def read_parquet_from_minio(object_key: str) -> pd.DataFrame:
     response = s3_client.get_object(Bucket=BUCKET_NAME, Key=object_key)
@@ -86,33 +71,34 @@ def save_outputs_and_upload(df: pd.DataFrame, domain: str, base_filename: str) -
     csv_filename = f"{base_filename}.csv"
     xlsx_filename = f"{base_filename}.xlsx"
 
-    local_partition_dir = os.path.join(LOCAL_BASE_DIR, domain, f"dt={data_atual}")
-    os.makedirs(local_partition_dir, exist_ok=True)
-
-    local_parquet_path = os.path.join(local_partition_dir, parquet_filename)
-    local_csv_path = os.path.join(local_partition_dir, csv_filename)
-    local_xlsx_path = os.path.join(local_partition_dir, xlsx_filename)
-
+    # Chaves (caminhos virtuais) no MinIO
     parquet_key = f"gold/{domain}/dt={data_atual}/{parquet_filename}"
     csv_key = f"gold/{domain}/dt={data_atual}/{csv_filename}"
     xlsx_key = f"gold/{domain}/dt={data_atual}/{xlsx_filename}"
 
-    df.to_parquet(local_parquet_path, index=False)
     export_df = prepare_dataframe_for_table_export(df)
-    export_df.to_csv(local_csv_path, index=False, sep=";", encoding="utf-8-sig")
 
+    print(f"Enviando {domain} direto para s3://{BUCKET_NAME}/gold/{domain}/dt={data_atual}/ ...")
+
+    # 1. Salvar e enviar Parquet (em memória)
+    parquet_buffer = io.BytesIO()
+    df.to_parquet(parquet_buffer, index=False)
+    upload_buffer_to_minio(parquet_buffer, parquet_key)
+
+    # 2. Salvar e enviar CSV (em memória)
+    csv_buffer = io.BytesIO()
+    export_df.to_csv(csv_buffer, index=False, sep=";", encoding="utf-8-sig")
+    upload_buffer_to_minio(csv_buffer, csv_key)
+
+    # 3. Salvar e enviar Excel (em memória)
     try:
-        export_df.to_excel(local_xlsx_path, index=False, sheet_name=domain)
-        xlsx_created = True
+        xlsx_buffer = io.BytesIO()
+        # openpyxl é obrigatório para escrever excel em buffer
+        with pd.ExcelWriter(xlsx_buffer, engine='openpyxl') as writer:
+            export_df.to_excel(writer, index=False, sheet_name=domain)
+        upload_buffer_to_minio(xlsx_buffer, xlsx_key)
     except Exception as exc:
-        xlsx_created = False
-        print(f"Aviso: não foi possível gerar XLSX para {domain}: {exc}")
-
-    print(f"Enviando {domain} para s3://{BUCKET_NAME}/{parquet_key}...")
-    upload_file_to_minio(local_parquet_path, parquet_key)
-    upload_file_to_minio(local_csv_path, csv_key)
-    if xlsx_created:
-        upload_file_to_minio(local_xlsx_path, xlsx_key)
+        print(f"Aviso: não foi possível gerar XLSX para {domain}: {exc}\n(Verifique se a biblioteca 'openpyxl' está instalada)")
 
 # ── Descoberta do arquivo de entrada ─────────────────────────
 def minio_key_exists(bucket_name: str, key: str) -> bool:
@@ -248,8 +234,7 @@ def build_security_dataset(cleaned_df: pd.DataFrame) -> pd.DataFrame:
 
 # ── Processo principal ───────────────────────────────────────
 def process_gold() -> None:
-    print("Iniciando pipeline Gold...\n")
-    ensure_local_dirs()
+    print("Iniciando pipeline Gold (em memória)...\n")
     ensure_bucket_exists(BUCKET_NAME)
 
     cleaned_df = load_and_prepare_cleaned_logs()
@@ -262,7 +247,7 @@ def process_gold() -> None:
     save_outputs_and_upload(performance_df, "performance", "performance")
     save_outputs_and_upload(security_df, "security", "security")
 
-    print("\n✅ Pipeline Gold concluído e enviado para o bucket correto!")
+    print("\n✅ Pipeline Gold concluído e enviado diretamente para o MinIO!")
 
 if __name__ == "__main__":
     process_gold()
