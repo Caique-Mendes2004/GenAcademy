@@ -1,114 +1,283 @@
-# GenAcademy
+# 🚀 Arquitetura da Aplicação - Plataforma de Análise com IA
 
-## Agente de Otimização de Infraestrutura Educacional (SaaS Scalability Agent)
+## 📌 Visão Geral
 
-Este repositório contém o desenvolvimento de um projeto de **LLM aplicado à nuvem**, com foco em **otimização de infraestrutura, análise de logs e suporte à tomada de decisão em ambientes SaaS educacionais**.
+Esta aplicação implementa uma arquitetura moderna de dados e inteligência artificial, combinando:
 
-O projeto utiliza como base o dataset do Kaggle:
+* Data Lake (MinIO)
+* Processamento de dados (pipelines em Python)
+* Machine Learning (detecção de anomalias)
+* LLM (Agent com ferramentas)
+* Backend (FastAPI)
+* Frontend (React)
+* Banco relacional (PostgreSQL)
+* Vector Database (RAG)
 
-- **Dataset:** [AWS CloudTrails Dataset from FLAWS Cloud](https://www.kaggle.com/datasets/nobukim/aws-cloudtrails-dataset-from-flaws-cloud?select=nineteenFeaturesDf.csv)
-
----
-
-## Objetivo do Projeto
-
-O objetivo deste projeto é construir um **Agente Inteligente de Escalabilidade e FinOps** para um ambiente educacional SaaS, capaz de:
-
-- analisar logs de infraestrutura em nuvem;
-- identificar padrões de uso e picos de acesso;
-- gerar recomendações inteligentes de escalabilidade;
-- apoiar a redução de custos operacionais;
-- melhorar a performance da plataforma em horários críticos de uso.
+O objetivo é permitir **análise inteligente de dados**, com **detecção de anomalias** e **respostas em linguagem natural** para o usuário.
 
 ---
 
-## Contexto da Solução
+# 🧱 Arquitetura Geral
 
-O **Agente de Otimização de Infraestrutura Educacional** foi idealizado para atuar como um assistente inteligente dentro de um dashboard administrativo do **GenAcademy**, auxiliando gestores técnicos e de negócio a interpretar dados de uso da aplicação.
+A arquitetura segue um fluxo dividido em três camadas principais:
 
-Exemplo de insight gerado pelo agente:
-
-> “Notei que a Escola X apresenta um pico de uso às 08:00, o que está sobrecarregando o banco de dados. Sugiro provisionar mais instâncias de leitura nesse horário para evitar latência para os alunos.”
-
----
-
-## Arquitetura de Dados
-
-O projeto segue uma abordagem inspirada em **Arquitetura Medalhão**, com foco em organização analítica e governança de dados.
-
-### Bronze
-Armazenamento dos **logs brutos** de acesso, eventos de nuvem e utilização de serviços como CloudFront, Lambda, EC2 e demais componentes monitorados.
-
-### Prata
-Camada de **tratamento e agregação**, agrupando os acessos por padrões relevantes, como:
-
-- horário escolar;
-- turnos (manhã, tarde e noite);
-- comportamento de uso por escola, turma ou perfil de usuário.
-
-### Ouro
-Camada analítica com geração de indicadores estratégicos, como:
-
-- custo por aluno;
-- custo por escola;
-- janelas de maior consumo;
-- padrões de sobrecarga e necessidade de escalabilidade.
-
----
-
-## Execução do Projeto
-### Como executar
-```bash
-docker compose up -d
-
-# Camada Bronze
-docker exec -it mlflow-server python ingestion_bronze.py
-
-# Camada Prata
-docker exec -it mlflow-server python process_silver.py
-
-# Camada Gold
-docker exec -it mlflow-server python process_gold.py
-
+```text
+Usuário → Frontend → Backend → IA / Dados / ML
 ```
 
-## Papel do LLM no Projeto
+---
 
-O LLM será utilizado como um **agente interpretador e recomendador**, capaz de transformar métricas técnicas em orientações acionáveis para o negócio.
+# 👤 Fluxo do Usuário
 
-### Principais funções do agente:
-- interpretar eventos e padrões presentes nos logs;
-- identificar anomalias de uso;
-- sugerir ações de escalabilidade;
-- apoiar estratégias de **FinOps**;
-- traduzir informações técnicas em linguagem clara para administradores da plataforma.
+1. O usuário acessa o sistema via **Frontend (React)**
+2. Realiza autenticação
+3. Interage com o sistema (dashboard ou perguntas)
+4. As requisições são enviadas para o **FastAPI**
+5. O backend decide se:
+
+   * consulta dados no PostgreSQL
+   * aciona o Agent (LLM)
+   * executa análise de anomalias
 
 ---
 
-## Valor Gerado para o SaaS
+# ⚙️ Backend (FastAPI)
 
-Com essa solução, o GenAcademy poderá obter benefícios como:
+O backend atua como **orquestrador central**, sendo responsável por:
 
-- **redução de custos em infraestrutura**;
-- **melhor aproveitamento de recursos computacionais**;
-- **prevenção de gargalos de performance**;
-- **maior disponibilidade do ambiente para alunos e escolas**;
-- **suporte inteligente à gestão operacional da plataforma**.
+* Autenticação de usuários
+* Exposição de APIs
+* Integração com:
+
+  * PostgreSQL
+  * Data Lake (MinIO)
+  * Modelo de ML
+  * Agent (LLM)
 
 ---
 
-## Tecnologias e Conceitos Envolvidos
+# 🗄️ PostgreSQL (Camada Operacional)
 
-Este projeto envolve conceitos e práticas como:
+Responsável por armazenar dados de **baixa latência e uso operacional**:
 
-- Large Language Models (LLM)
-- Cloud Computing
-- Observabilidade
-- FinOps
-- Arquitetura Medalhão
-- Processamento e análise de logs
-- Otimização de infraestrutura SaaS
-- Inteligência aplicada à operação em nuvem
+* Usuários
+* Configurações
+* Métricas agregadas
+* Anomalias detectadas
+* Insights gerados pela IA
+
+👉 Não armazena dados brutos ou datasets grandes
+
+---
+
+# 🪣 Data Lake (MinIO)
+
+Estruturado em três camadas:
+
+## 🥉 Bronze
+
+* Dados brutos (CSV)
+* Origem: dataset do Kaggle
+* Sem tratamento
+
+---
+
+## 🥈 Silver
+
+* Dados tratados e limpos
+* Conversão para Parquet
+* Aplicação de:
+
+  * limpeza
+  * filtragem
+  * enriquecimento
+
+---
+
+## 🥇 Gold
+
+* Dados organizados por domínio:
+
+  * Custo
+  * Performance
+  * Segurança
+* Prontos para análise e consumo
+
+---
+
+# 🔄 Pipeline de Dados
+
+## Ingestão
+
+```text
+Kaggle → Pipeline → MinIO Bronze
+```
+
+## Processamento
+
+```text
+Bronze → Pipeline → Silver → Pipeline → Gold
+```
+
+---
+
+# 🤖 Machine Learning (Detecção de Anomalias)
+
+* Algoritmo utilizado: **Isolation Forest**
+* Entrada: dados da camada Gold
+* Saída:
+
+  * anomaly_score
+  * classificação (normal/anômalo)
+
+## Fluxo:
+
+```text
+Gold → Modelo → Resultado → PostgreSQL
+```
+
+---
+
+# 🧪 MLflow
+
+Responsável por:
+
+* Versionamento do modelo
+* Registro de experimentos
+* Gestão do ciclo de vida do modelo
+
+---
+
+# 🧠 IA (Agent com LLM)
+
+O sistema utiliza um **Agent com LLM**, capaz de responder perguntas do usuário.
+
+## Funcionamento:
+
+```text
+Usuário → FastAPI → Agent (LLM)
+```
+
+O Agent utiliza ferramentas (tools):
+
+* PostgreSQL → dados estruturados
+* VectorDB → contexto semântico
+* Gold (via pipeline) → dados analíticos
+
+---
+
+# 🔍 Vector Database (RAG)
+
+Responsável por armazenar embeddings e permitir:
+
+* busca semântica
+* recuperação de contexto
+* suporte ao Agent
+
+## Fluxo:
+
+```text
+Gold → Pipeline de Embeddings → VectorDB
+```
+
+---
+
+# 🔄 Integração com IA
+
+O Agent combina múltiplas fontes:
+
+```text
+LLM
+ ├── PostgreSQL (métricas e anomalias)
+ ├── VectorDB (contexto)
+ └── Dados analíticos (Gold)
+```
+
+---
+
+# 📊 Domínios de Dados
+
+## 💰 Custo
+
+* timestamp
+* requests
+* cost
+
+## ⚡ Performance
+
+* latency
+* requests
+* peak usage
+* status
+
+## 🔐 Segurança
+
+* eventos
+* acessos suspeitos
+* anomaly_score
+* risk_level
+
+---
+
+# 🐳 Docker
+
+Toda a aplicação é executada em containers:
+
+* Frontend
+* Backend (FastAPI)
+* PostgreSQL
+* MinIO
+* MLflow
+* VectorDB
+
+---
+
+# 🔄 Versionamento
+
+O código e pipelines são versionados via GitHub.
+
+---
+
+# 🧠 Decisões de Arquitetura
+
+### Separação de responsabilidades
+
+* PostgreSQL → dados operacionais
+* MinIO → dados analíticos
+* ML → inteligência
+* LLM → explicabilidade
+
+---
+
+### Escalabilidade
+
+* Data Lake permite crescimento de dados
+* PostgreSQL garante baixa latência
+* MLflow permite evolução do modelo
+
+---
+
+### Flexibilidade
+
+* Agent pode integrar novas tools facilmente
+* Novos modelos podem ser adicionados
+
+---
+
+# 🏁 Conclusão
+
+A arquitetura combina:
+
+* Engenharia de dados
+* Machine Learning
+* Inteligência Artificial
+* APIs modernas
+
+Resultando em uma plataforma capaz de:
+
+* Detectar anomalias automaticamente
+* Explicar comportamentos com IA
+* Escalar para grandes volumes de dados
 
 ---
 
